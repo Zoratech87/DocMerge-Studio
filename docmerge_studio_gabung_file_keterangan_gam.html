@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocMerge Studio — Gabung PDF, Gambar & Keterangan Otomatis</title>
+    
+    <!-- SEO & GitHub Pages Metadata -->
+    <meta name="description" content="Aplikasi web gratis untuk menggabungkan file PDF, Gambar (JPG, PNG, WEBP), dan Teks dengan fitur penambahan keterangan gambar otomatis dan rotasi. 100% privat di browser.">
+    <meta name="keywords" content="merge pdf, gabung pdf, gabung gambar ke pdf, keterangan gambar pdf, docmerge studio">
+    <meta name="author" content="DocMerge Studio">
+    <meta name="theme-color" content="#4f46e5">
+
+    <!-- Open Graph / Social Media Preview -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="DocMerge Studio — Gabung File & Keterangan Gambar">
+    <meta property="og:description" content="Gabungkan PDF, Gambar dengan keterangan khusus, dan Teks langsung di browser tanpa unggah ke server.">
+
+    <!-- Inline SVG Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 2 7 12 12 22 7 12 2'/%3E%3Cpolyline points='2 17 12 22 22 17'/%3E%3Cpolyline points='2 12 12 17 22 12'/%3E%3C/svg%3E">
+    
+    <!-- Google Fonts: Inter & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Libraries: Lucide Icons, pdf-lib, pdf.js, SortableJS -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <style>
+        /* Custom Scrollbar & Drag Styles */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 0.8);
+        }
+        .sortable-ghost {
+            opacity: 0.4;
+            transform: scale(0.98);
+            border: 2px dashed #6366f1 !important;
+        }
+        .sortable-drag {
+            cursor: grabbing !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200 selection:bg-brand-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="sticky top-0 z-30 bg-white/85 dark:bg-slate-900/85 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-brand-500/25">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="font-display font-bold text-lg sm:text-xl tracking-tight text-slate-900 dark:text-white leading-none">
+                        DocMerge <span class="text-brand-600 dark:text-brand-400">Studio</span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 hidden sm:block">Gabung PDF, Gambar + Keterangan & Teks</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button id="clearAllBtn" class="hidden items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-xl transition">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Hapus Semua</span>
+                </button>
+                <button id="themeToggle" aria-label="Ubah Tema" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+            
+            <!-- Left Column: Upload & File Queue (7 cols on desktop) -->
+            <div class="lg:col-span-7 xl:col-span-8 space-y-6">
+                
+                <!-- Dropzone Card -->
+                <div id="dropZone" class="relative group cursor-pointer rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-500 dark:hover:border-brand-400 bg-white dark:bg-slate-900 p-6 sm:p-10 text-center transition-all duration-200 shadow-sm hover:shadow-md">
+                    <input type="file" id="fileInput" multiple accept=".pdf,image/png,image/jpeg,image/webp,text/plain" class="hidden">
+                    
+                    <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-brand-400 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                        <i data-lucide="file-plus-2" class="w-7 h-7"></i>
+                    </div>
+                    
+                    <h2 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+                        Klik atau Seret File ke Sini
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 max-w-md mx-auto">
+                        Mendukung <span class="font-semibold text-slate-700 dark:text-slate-300">PDF, Gambar (JPG, PNG, WEBP)</span>, dan <span class="font-semibold text-slate-700 dark:text-slate-300">Teks (.TXT)</span>. Semua diproses aman di browser Anda.
+                    </p>
+                    
+                    <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                            <i data-lucide="message-square-plus" class="w-3.5 h-3.5 text-emerald-500"></i> Keterangan Gambar Otomatis
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                            <i data-lucide="rotate-cw" class="w-3.5 h-3.5 text-amber-500"></i> Putar Gambar 90°
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                            <i data-lucide="move-vertical" class="w-3.5 h-3.5 text-brand-500"></i> Geser Urutan
+                        </span>
+                    </div>
+                </div>
+
+                <!-- File List Header -->
+                <div id="listHeader" class="hidden flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">Daftar File</h3>
+                        <span id="fileCountBadge" class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-brand-100 dark:bg-brand-900/60 text-brand-700 dark:text-brand-300">0 File</span>
+                        <span id="totalPagesBadge" class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300">0 Hal</span>
+                    </div>
+                    <button id="addMoreBtn" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50 hover:bg-brand-100 dark:hover:bg-brand-900/60 rounded-xl transition">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Tambah File
+                    </button>
+                </div>
+
+                <!-- Empty State Illustration -->
+                <div id="emptyState" class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 text-center">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 mb-3">
+                        <i data-lucide="folder-open" class="w-6 h-6"></i>
+                    </div>
+                    <p class="text-sm font-medium text-slate-600 dark:text-slate-300">Belum ada file yang ditambahkan</p>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Unggah beberapa gambar atau PDF untuk mulai menggabungkan dokumen.</p>
+                </div>
+
+                <!-- Sortable File Items Container -->
+                <div id="fileList" class="space-y-3"></div>
+            </div>
+
+            <!-- Right Column: Export & Merge Settings (5 cols on desktop) -->
+            <div class="lg:col-span-5 xl:col-span-4 lg:sticky lg:top-24 space-y-5">
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-sm space-y-5">
+                    <div class="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
+                        <i data-lucide="sliders-horizontal" class="w-5 h-5 text-brand-600 dark:text-brand-400"></i>
+                        <h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">Pengaturan Hasil</h3>
+                    </div>
+
+                    <!-- Output Filename -->
+                    <div>
+                        <label for="outputFilename" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">
+                            Nama File Hasil
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="outputFilename" value="Dokumen_Gabungan" placeholder="Masukkan nama file..." 
+                                class="w-full px-3.5 py-2.5 text-sm rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white transition">
+                        </div>
+                    </div>
+
+                    <!-- Output Format Selection -->
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                            Pilih Format Output
+                        </label>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="outputFormat" value="pdf" checked class="peer sr-only">
+                                <div class="p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-brand-600 peer-checked:bg-brand-50/60 dark:peer-checked:bg-brand-950/40 transition text-center">
+                                    <i data-lucide="file-text" class="w-5 h-5 mx-auto mb-1 text-rose-500"></i>
+                                    <div class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Dokumen PDF</div>
+                                    <div class="text-[11px] text-slate-500 dark:text-slate-400">Multi-halaman (.pdf)</div>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="outputFormat" value="png" class="peer sr-only">
+                                <div class="p-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 peer-checked:border-brand-600 peer-checked:bg-brand-50/60 dark:peer-checked:bg-brand-950/40 transition text-center">
+                                    <i data-lucide="image" class="w-5 h-5 mx-auto mb-1 text-emerald-500"></i>
+                                    <div class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">Gambar Panjang</div>
+                                    <div class="text-[11px] text-slate-500 dark:text-slate-400">Satu gambar (.png)</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Caption & Page Settings -->
+                    <div id="pdfSettingsBox" class="space-y-4 pt-1">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div id="pageSizeWrapper">
+                                <label for="pageSize" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Ukuran Kertas</label>
+                                <select id="pageSize" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option value="A4" selected>A4 (Standar)</option>
+                                    <option value="LETTER">Letter (US)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="captionPosition" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Posisi Keterangan</label>
+                                <select id="captionPosition" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                    <option value="bottom" selected>Di Bawah Gambar</option>
+                                    <option value="top">Di Atas Gambar</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Auto Numbering Toggle -->
+                        <label id="pageNumberWrapper" class="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/70 cursor-pointer">
+                            <div>
+                                <div class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">Nomor Halaman Otomatis</div>
+                                <div class="text-[11px] text-slate-500 dark:text-slate-400">Tampilkan "Halaman X dari Y" di bawah</div>
+                            </div>
+                            <input type="checkbox" id="includePageNumbers" checked class="w-4 h-4 rounded text-brand-600 focus:ring-brand-500">
+                        </label>
+                    </div>
+
+                    <!-- Primary Action Button -->
+                    <button id="mergeBtn" disabled class="w-full py-3.5 px-5 rounded-xl font-display font-bold text-sm sm:text-base text-white bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand-500/25 flex items-center justify-center gap-2 transition-all active:scale-[0.99]">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                        <span>Gabungkan & Unduh Sekarang</span>
+                    </button>
+
+                    <!-- Status Info -->
+                    <p class="text-[11px] text-center text-slate-400 dark:text-slate-500 flex items-center justify-center gap-1.5">
+                        <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500"></i>
+                        100% Privat: File tidak pernah diunggah ke server
+                    </p>
+                </div>
+
+                <!-- Preview Result Card (Appears after merge) -->
+                <div id="resultCard" class="hidden bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-2xl p-5 space-y-3">
+                    <div class="flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-display font-bold text-sm text-emerald-900 dark:text-emerald-200">Berhasil Digabungkan!</h4>
+                            <p id="resultSummary" class="text-xs text-emerald-700 dark:text-emerald-400 mt-0.5 truncate">Dokumen_Gabungan.pdf siap.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 pt-1">
+                        <a id="downloadAgainLink" href="#" download class="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold text-center transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Unduh Ulang
+                        </a>
+                        <button id="previewResultBtn" class="py-2 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 text-xs font-semibold hover:bg-emerald-100/50 transition flex items-center justify-center gap-1.5">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i> Pratinjau
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer (GitHub Pages Friendly) -->
+    <footer class="border-t border-slate-200/80 dark:border-slate-800/80 py-5 mt-auto bg-white/50 dark:bg-slate-900/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <p>&copy; <span id="currentYear"></span> <strong>DocMerge Studio</strong>. Diproses 100% secara lokal di perangkat Anda.</p>
+            <p class="flex items-center gap-1.5">
+                <span>Mendukung PDF, JPG, PNG, WEBP & TXT</span>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Custom Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- Loading Overlay Modal -->
+    <div id="loadingModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 max-w-sm w-full text-center shadow-2xl space-y-4">
+            <div class="w-12 h-12 mx-auto rounded-full border-4 border-brand-200 dark:border-brand-900 border-t-brand-600 animate-spin"></div>
+            <div>
+                <h3 class="font-display font-bold text-base text-slate-900 dark:text-white">Sedang Menggabungkan File...</h3>
+                <p id="loadingText" class="text-xs text-slate-500 dark:text-slate-400 mt-1">Menyusun halaman dan menyematkan keterangan gambar...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="hidden fixed inset-0 z-50 bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 w-full max-w-4xl h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+            <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <h3 class="font-display font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2">
+                    <i data-lucide="eye" class="w-4 h-4 text-brand-500"></i> Pratinjau Hasil Gabungan
+                </h3>
+                <button id="closePreviewBtn" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="previewContent" class="flex-1 bg-slate-100 dark:bg-slate-950 overflow-auto flex items-center justify-center p-4">
+                <!-- Preview injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize PDF.js Worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // Application State
+        let fileItems = [];
+        let lastMergedUrl = null;
+        let lastMergedType = null;
+
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const emptyState = document.getElementById('emptyState');
+        const listHeader = document.getElementById('listHeader');
+        const fileCountBadge = document.getElementById('fileCountBadge');
+        const totalPagesBadge = document.getElementById('totalPagesBadge');
+        const mergeBtn = document.getElementById('mergeBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const addMoreBtn = document.getElementById('addMoreBtn');
+        const loadingModal = document.getElementById('loadingModal');
+        const loadingText = document.getElementById('loadingText');
+        const resultCard = document.getElementById('resultCard');
+        const resultSummary = document.getElementById('resultSummary');
+        const downloadAgainLink = document.getElementById('downloadAgainLink');
+        const previewResultBtn = document.getElementById('previewResultBtn');
+        const previewModal = document.getElementById('previewModal');
+        const previewContent = document.getElementById('previewContent');
+        const closePreviewBtn = document.getElementById('closePreviewBtn');
+
+        // Initialize Icons & Theme
+        lucide.createIcons();
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+        const themeToggle = document.getElementById('themeToggle');
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+        });
+
+        // Initialize Drag & Drop Reordering via SortableJS
+        new Sortable(fileList, {
+            animation: 180,
+            handle: '.drag-handle',
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            onEnd: () => {
+                const newOrderIds = Array.from(fileList.children).map(el => el.dataset.id);
+                fileItems.sort((a, b) => newOrderIds.indexOf(a.id) - newOrderIds.indexOf(b.id));
+                renderFileList();
+            }
+        });
+
+        // Custom Toast Notification Helper
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const colors = {
+                info: 'bg-slate-900 dark:bg-slate-800 text-white border-slate-700',
+                success: 'bg-emerald-600 text-white border-emerald-500',
+                error: 'bg-rose-600 text-white border-rose-500'
+            };
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-lg text-xs sm:text-sm font-medium transition-all duration-300 transform translate-y-2 opacity-0 ${colors[type]}`;
+            toast.innerHTML = `<span>${message}</span>`;
+            document.getElementById('toastContainer').appendChild(toast);
+            
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3200);
+        }
+
+        // Format Bytes to Readable String
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        // Event Listeners for File Upload
+        dropZone.addEventListener('click', () => fileInput.click());
+        addMoreBtn.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-brand-500', 'bg-brand-50/40', 'dark:bg-brand-950/30');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-brand-500', 'bg-brand-50/40', 'dark:bg-brand-950/30');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-brand-500', 'bg-brand-50/40', 'dark:bg-brand-950/30');
+            if (e.dataTransfer.files.length) {
+                handleFiles(e.dataTransfer.files);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                handleFiles(e.target.files);
+                fileInput.value = '';
+            }
+        });
+
+        clearAllBtn.addEventListener('click', () => {
+            fileItems.forEach(item => {
+                if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+            });
+            fileItems = [];
+            resultCard.classList.add('hidden');
+            renderFileList();
+            showToast('Semua file telah dihapus.', 'info');
+        });
+
+        // Toggle PDF settings visibility when switching format
+        document.querySelectorAll('input[name="outputFormat"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                const pageSizeWrapper = document.getElementById('pageSizeWrapper');
+                const pageNumberWrapper = document.getElementById('pageNumberWrapper');
+                if (e.target.value === 'png') {
+                    pageSizeWrapper.classList.add('opacity-50', 'pointer-events-none');
+                    pageNumberWrapper.classList.add('opacity-50', 'pointer-events-none');
+                } else {
+                    pageSizeWrapper.classList.remove('opacity-50', 'pointer-events-none');
+                    pageNumberWrapper.classList.remove('opacity-50', 'pointer-events-none');
+                }
+            });
+        });
+
+        // Process Uploaded Files
+        async function handleFiles(files) {
+            const validFiles = Array.from(files);
+            let addedCount = 0;
+
+            for (const file of validFiles) {
+                const id = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+                const ext = file.name.split('.').pop().toLowerCase();
+
+                if (file.type.startsWith('image/')) {
+                    const previewUrl = URL.createObjectURL(file);
+                    fileItems.push({
+                        id,
+                        file,
+                        name: file.name,
+                        size: file.size,
+                        type: 'image',
+                        previewUrl,
+                        caption: '',
+                        rotation: 0, // 0, 90, 180, 270
+                        pageCount: 1
+                    });
+                    addedCount++;
+                } else if (file.type === 'application/pdf' || ext === 'pdf') {
+                    try {
+                        const arrayBuffer = await file.arrayBuffer();
+                        const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                        const pageCount = pdfDoc.getPageCount();
+                        fileItems.push({
+                            id,
+                            file,
+                            name: file.name,
+                            size: file.size,
+                            type: 'pdf',
+                            arrayBuffer,
+                            pageCount
+                        });
+                        addedCount++;
+                    } catch (err) {
+                        showToast(`Gagal membaca PDF "${file.name}". Pastikan tidak terkunci password.`, 'error');
+                    }
+                } else if (file.type === 'text/plain' || ext === 'txt') {
+                    const textContent = await file.text();
+                    fileItems.push({
+                        id,
+                        file,
+                        name: file.name,
+                        size: file.size,
+                        type: 'text',
+                        textContent,
+                        pageCount: 1
+                    });
+                    addedCount++;
+                } else {
+                    showToast(`Format file "${file.name}" tidak didukung.`, 'error');
+                }
+            }
+
+            if (addedCount > 0) {
+                renderFileList();
+                showToast(`${addedCount} file berhasil ditambahkan!`, 'success');
+            }
+        }
+
+        // Render File Cards with Image Caption Inputs & Rotation Controls
+        function renderFileList() {
+            fileList.innerHTML = '';
+
+            if (fileItems.length === 0) {
+                emptyState.classList.remove('hidden');
+                listHeader.classList.add('hidden');
+                clearAllBtn.classList.add('hidden');
+                clearAllBtn.classList.remove('flex');
+                mergeBtn.disabled = true;
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            listHeader.classList.remove('hidden');
+            listHeader.classList.add('flex');
+            clearAllBtn.classList.remove('hidden');
+            clearAllBtn.classList.add('flex');
+            mergeBtn.disabled = false;
+
+            const totalPages = fileItems.reduce((acc, item) => acc + item.pageCount, 0);
+            fileCountBadge.textContent = `${fileItems.length} File`;
+            totalPagesBadge.textContent = `Est. ${totalPages} Hal`;
+
+            fileItems.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.dataset.id = item.id;
+                card.className = 'bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3.5 sm:p-4 shadow-sm hover:border-brand-300 dark:hover:border-brand-700 transition-all';
+
+                let thumbHtml = '';
+                let badgeHtml = '';
+
+                if (item.type === 'image') {
+                    thumbHtml = `
+                        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl border border-slate-200 dark:border-slate-700 shrink-0 bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center">
+                            <img src="${item.previewUrl}" alt="${escapeHtml(item.name)}" style="transform: rotate(${item.rotation}deg);" class="w-full h-full object-cover transition-transform duration-200">
+                        </div>`;
+                    badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400">Gambar</span>`;
+                } else if (item.type === 'pdf') {
+                    thumbHtml = `
+                        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/60 flex flex-col items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                            <i data-lucide="file-text" class="w-6 h-6"></i>
+                            <span class="text-[10px] font-bold mt-0.5">${item.pageCount} Hal</span>
+                        </div>`;
+                    badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400">PDF (${item.pageCount} Hal)</span>`;
+                } else {
+                    thumbHtml = `
+                        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 flex flex-col items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                            <i data-lucide="file-type" class="w-6 h-6"></i>
+                            <span class="text-[10px] font-bold mt-0.5">TXT</span>
+                        </div>`;
+                    badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-400">Teks</span>`;
+                }
+
+                // Rotate button only for images
+                const rotateBtnHtml = item.type === 'image' ? `
+                    <button onclick="rotateImage('${item.id}')" class="p-2 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition" title="Putar Gambar 90°">
+                        <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                    </button>
+                ` : '';
+
+                // Image Caption Input Section
+                const captionInputHtml = item.type === 'image' ? `
+                    <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                        <label class="flex items-center justify-between text-xs font-semibold text-brand-600 dark:text-brand-400 mb-1.5">
+                            <span class="flex items-center gap-1.5">
+                                <i data-lucide="message-square-plus" class="w-3.5 h-3.5"></i>
+                                Keterangan Gambar (Otomatis masuk ke hasil merge):
+                            </span>
+                            ${item.rotation > 0 ? `<span class="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Diputar ${item.rotation}°</span>` : ''}
+                        </label>
+                        <input type="text" 
+                            data-caption-id="${item.id}"
+                            value="${escapeHtml(item.caption)}" 
+                            placeholder="Contoh: Lampiran 1 - Foto KTP / Bukti Pembayaran..." 
+                            class="caption-input w-full px-3 py-2 text-xs sm:text-sm rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white placeholder:text-slate-400 transition">
+                    </div>
+                ` : '';
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-2.5 sm:gap-3">
+                        <!-- Drag Handle & Order Number -->
+                        <div class="drag-handle cursor-grab active:cursor-grabbing p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex flex-col items-center gap-0.5 touch-none" title="Geser untuk mengubah urutan">
+                            <span class="text-[10px] font-bold text-slate-400">#${index + 1}</span>
+                            <i data-lucide="grip-vertical" class="w-4 h-4"></i>
+                        </div>
+
+                        ${thumbHtml}
+
+                        <!-- File Info -->
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-0.5">
+                                ${badgeHtml}
+                                <span class="text-xs text-slate-400">${formatBytes(item.size)}</span>
+                            </div>
+                            <h4 class="font-semibold text-sm text-slate-900 dark:text-white truncate" title="${escapeHtml(item.name)}">
+                                ${escapeHtml(item.name)}
+                            </h4>
+                        </div>
+
+                        <!-- Quick Actions: Rotate, Move Up/Down & Delete -->
+                        <div class="flex items-center gap-0.5 sm:gap-1">
+                            ${rotateBtnHtml}
+                            <button onclick="moveItem(${index}, -1)" ${index === 0 ? 'disabled' : ''} class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition" title="Pindah ke Atas">
+                                <i data-lucide="chevron-up" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="moveItem(${index}, 1)" ${index === fileItems.length - 1 ? 'disabled' : ''} class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition" title="Pindah ke Bawah">
+                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="removeItem('${item.id}')" class="p-2 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition" title="Hapus File">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${captionInputHtml}
+                `;
+
+                fileList.appendChild(card);
+            });
+
+            // Attach live input listeners for image captions
+            document.querySelectorAll('.caption-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const targetId = e.target.dataset.captionId;
+                    const found = fileItems.find(f => f.id === targetId);
+                    if (found) {
+                        found.caption = e.target.value;
+                    }
+                });
+            });
+
+            lucide.createIcons();
+        }
+
+        // Escape HTML helper
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Rotate image 90 degrees clockwise
+        window.rotateImage = function(id) {
+            const item = fileItems.find(f => f.id === id);
+            if (!item) return;
+            item.rotation = (item.rotation + 90) % 360;
+            renderFileList();
+        };
+
+        // Move item up/down via buttons
+        window.moveItem = function(index, direction) {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= fileItems.length) return;
+            const temp = fileItems[index];
+            fileItems[index] = fileItems[newIndex];
+            fileItems[newIndex] = temp;
+            renderFileList();
+        };
+
+        // Remove single item
+        window.removeItem = function(id) {
+            const item = fileItems.find(f => f.id === id);
+            if (item && item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+            fileItems = fileItems.filter(f => f.id !== id);
+            renderFileList();
+        };
+
+        // =========================================================================
+        // CORE ENGINE: RENDER IMAGE (WITH ROTATION) + CAPTION USING HIGH-RES CANVAS
+        // =========================================================================
+        async function renderImageWithCaptionToCanvas(item, targetWidth, maxHeight, captionPos) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const scaleFactor = 2; // 2x Retina sharpness
+                    const hasCaption = item.caption && item.caption.trim().length > 0;
+                    const captionText = hasCaption ? item.caption.trim() : '';
+
+                    // Determine effective dimensions after rotation
+                    const isRotated90or270 = item.rotation === 90 || item.rotation === 270;
+                    const srcW = isRotated90or270 ? img.height : img.width;
+                    const srcH = isRotated90or270 ? img.width : img.height;
+
+                    // Calculate wrapped caption lines
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    const fontSize = 18;
+                    const lineHeight = 26;
+                    const paddingX = 24;
+                    const paddingY = 16;
+                    tempCtx.font = `600 ${fontSize}px Inter, sans-serif`;
+
+                    const maxTextWidth = targetWidth - (paddingX * 2);
+                    const lines = wrapTextLines(tempCtx, captionText, maxTextWidth);
+                    const captionBoxHeight = hasCaption ? (lines.length * lineHeight) + (paddingY * 2) : 0;
+
+                    // Calculate scaled image dimensions to fit within targetWidth & maxHeight
+                    const availableImgHeight = maxHeight - captionBoxHeight - 16;
+                    const widthRatio = targetWidth / srcW;
+                    const heightRatio = availableImgHeight / srcH;
+                    const ratio = Math.min(widthRatio, heightRatio, 1.5);
+
+                    const drawW = Math.round(srcW * ratio);
+                    const drawH = Math.round(srcH * ratio);
+
+                    const finalCanvasW = Math.max(drawW, hasCaption ? Math.min(targetWidth, Math.max(drawW, 380)) : drawW);
+                    const finalCanvasH = drawH + captionBoxHeight;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = finalCanvasW * scaleFactor;
+                    canvas.height = finalCanvasH * scaleFactor;
+                    const ctx = canvas.getContext('2d');
+                    ctx.scale(scaleFactor, scaleFactor);
+
+                    // White background
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, finalCanvasW, finalCanvasH);
+
+                    const imgX = (finalCanvasW - drawW) / 2;
+                    let imgY = 0;
+                    let captionY = drawH;
+
+                    if (hasCaption && captionPos === 'top') {
+                        captionY = 0;
+                        imgY = captionBoxHeight;
+                    }
+
+                    // Draw Image with Rotation Transform
+                    ctx.save();
+                    ctx.translate(imgX + drawW / 2, imgY + drawH / 2);
+                    ctx.rotate((item.rotation * Math.PI) / 180);
+                    if (isRotated90or270) {
+                        ctx.drawImage(img, -drawH / 2, -drawW / 2, drawH, drawW);
+                    } else {
+                        ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+                    }
+                    ctx.restore();
+
+                    // Draw Caption Banner if present
+                    if (hasCaption) {
+                        ctx.fillStyle = '#f8fafc';
+                        ctx.fillRect(0, captionY, finalCanvasW, captionBoxHeight);
+
+                        ctx.fillStyle = '#4f46e5';
+                        if (captionPos === 'bottom') {
+                            ctx.fillRect(0, captionY, finalCanvasW, 3);
+                        } else {
+                            ctx.fillRect(0, captionBoxHeight - 3, finalCanvasW, 3);
+                        }
+
+                        ctx.fillStyle = '#0f172a';
+                        ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'top';
+
+                        lines.forEach((line, idx) => {
+                            const textY = captionY + paddingY + (idx * lineHeight);
+                            ctx.fillText(line, finalCanvasW / 2, textY);
+                        });
+                    }
+
+                    resolve(canvas);
+                };
+                img.onerror = reject;
+                img.src = item.previewUrl;
+            });
+        }
+
+        // Helper to wrap text cleanly on Canvas
+        function wrapTextLines(ctx, text, maxWidth) {
+            if (!text) return [];
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = words[0];
+
+            for (let i = 1; i < words.length; i++) {
+                const word = words[i];
+                const width = ctx.measureText(currentLine + ' ' + word).width;
+                if (width < maxWidth) {
+                    currentLine += ' ' + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        // =========================================================================
+        // MAIN MERGE CONTROLLER
+        // =========================================================================
+        mergeBtn.addEventListener('click', async () => {
+            if (fileItems.length === 0) return;
+
+            const outputFormat = document.querySelector('input[name="outputFormat"]:checked').value;
+            const rawFilename = document.getElementById('outputFilename').value.trim() || 'Dokumen_Gabungan';
+            const cleanFilename = rawFilename.replace(/[^a-zA-Z0-9_\-\s]/g, '').trim() || 'Dokumen_Gabungan';
+
+            loadingModal.classList.remove('hidden');
+
+            try {
+                if (outputFormat === 'pdf') {
+                    await generateMergedPDF(cleanFilename);
+                } else {
+                    await generateMergedLongImage(cleanFilename);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Terjadi kesalahan saat menggabungkan file: ' + err.message, 'error');
+            } finally {
+                loadingModal.classList.add('hidden');
+            }
+        });
+
+        // 1. MERGE INTO MULTI-PAGE PDF
+        async function generateMergedPDF(filename) {
+            const { PDFDocument, StandardFonts, rgb } = PDFLib;
+            const mergedPdf = await PDFDocument.create();
+            const helveticaFont = await mergedPdf.embedFont(StandardFonts.Helvetica);
+
+            const pageSizeChoice = document.getElementById('pageSize').value;
+            const captionPos = document.getElementById('captionPosition').value;
+            const includePageNumbers = document.getElementById('includePageNumbers').checked;
+
+            const pageDims = pageSizeChoice === 'LETTER' ? [612, 792] : [595.28, 841.89]; // A4
+            const [pageW, pageH] = pageDims;
+            const margin = 40;
+
+            for (let i = 0; i < fileItems.length; i++) {
+                const item = fileItems[i];
+                loadingText.textContent = `Memproses file ${i + 1} dari ${fileItems.length}: ${item.name}`;
+
+                if (item.type === 'pdf') {
+                    const srcPdf = await PDFDocument.load(item.arrayBuffer);
+                    const copiedPages = await mergedPdf.copyPages(srcPdf, srcPdf.getPageIndices());
+                    copiedPages.forEach(page => mergedPdf.addPage(page));
+                } 
+                else if (item.type === 'image') {
+                    const canvas = await renderImageWithCaptionToCanvas(
+                        item, 
+                        pageW - (margin * 2), 
+                        pageH - (margin * 2), 
+                        captionPos
+                    );
+                    const pngDataUrl = canvas.toDataURL('image/png');
+                    const pngBytes = await fetch(pngDataUrl).then(res => res.arrayBuffer());
+                    const embeddedImg = await mergedPdf.embedPng(pngBytes);
+
+                    const page = mergedPdf.addPage([pageW, pageH]);
+                    const drawW = canvas.width / 2;
+                    const drawH = canvas.height / 2;
+
+                    const x = (pageW - drawW) / 2;
+                    const y = (pageH - drawH) / 2;
+
+                    page.drawImage(embeddedImg, {
+                        x,
+                        y,
+                        width: drawW,
+                        height: drawH
+                    });
+                } 
+                else if (item.type === 'text') {
+                    const page = mergedPdf.addPage([pageW, pageH]);
+                    const fontSize = 11;
+                    const lineHeight = 16;
+                    const maxWidth = pageW - (margin * 2);
+
+                    page.drawText(item.name, {
+                        x: margin,
+                        y: pageH - margin,
+                        size: 13,
+                        font: helveticaFont,
+                        color: rgb(0.2, 0.2, 0.6)
+                    });
+
+                    const paragraphs = item.textContent.split(/\r?\n/);
+                    let cursorY = pageH - margin - 26;
+                    let currentPage = page;
+
+                    for (const para of paragraphs) {
+                        const words = para.split(' ');
+                        let line = '';
+                        for (const word of words) {
+                            const testLine = line + word + ' ';
+                            const width = helveticaFont.widthOfTextAtSize(testLine, fontSize);
+                            if (width > maxWidth && line !== '') {
+                                currentPage.drawText(line.trim(), { x: margin, y: cursorY, size: fontSize, font: helveticaFont, color: rgb(0.1, 0.1, 0.1) });
+                                cursorY -= lineHeight;
+                                line = word + ' ';
+                                if (cursorY < margin + 20) {
+                                    currentPage = mergedPdf.addPage([pageW, pageH]);
+                                    cursorY = pageH - margin;
+                                }
+                            } else {
+                                line = testLine;
+                            }
+                        }
+                        currentPage.drawText(line.trim(), { x: margin, y: cursorY, size: fontSize, font: helveticaFont, color: rgb(0.1, 0.1, 0.1) });
+                        cursorY -= lineHeight;
+                        if (cursorY < margin + 20) {
+                            currentPage = mergedPdf.addPage([pageW, pageH]);
+                            cursorY = pageH - margin;
+                        }
+                    }
+                }
+            }
+
+            if (includePageNumbers) {
+                const pages = mergedPdf.getPages();
+                const totalPages = pages.length;
+                pages.forEach((p, idx) => {
+                    const { width } = p.getSize();
+                    const footerText = `Halaman ${idx + 1} dari ${totalPages}`;
+                    const textWidth = helveticaFont.widthOfTextAtSize(footerText, 9);
+                    p.drawText(footerText, {
+                        x: (width - textWidth) / 2,
+                        y: 16,
+                        size: 9,
+                        font: helveticaFont,
+                        color: rgb(0.45, 0.45, 0.5)
+                    });
+                });
+            }
+
+            const pdfBytes = await mergedPdf.save();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            triggerDownloadAndResult(blob, `${filename}.pdf`, 'pdf', mergedPdf.getPageCount());
+        }
+
+        // 2. MERGE INTO SINGLE LONG VERTICAL PNG IMAGE
+        async function generateMergedLongImage(filename) {
+            const captionPos = document.getElementById('captionPosition').value;
+            const targetWidth = 900;
+            const gapBetweenItems = 24;
+            const renderedCanvases = [];
+
+            for (let i = 0; i < fileItems.length; i++) {
+                const item = fileItems[i];
+                loadingText.textContent = `Merender gambar/halaman ${i + 1} dari ${fileItems.length}...`;
+
+                if (item.type === 'image') {
+                    const c = await renderImageWithCaptionToCanvas(item, targetWidth, 1400, captionPos);
+                    renderedCanvases.push(c);
+                } 
+                else if (item.type === 'pdf') {
+                    const pdf = await pdfjsLib.getDocument({ data: item.arrayBuffer.slice(0) }).promise;
+                    for (let p = 1; p <= pdf.numPages; p++) {
+                        const page = await pdf.getPage(p);
+                        const unscaledViewport = page.getViewport({ scale: 1 });
+                        const scale = (targetWidth * 2) / unscaledViewport.width;
+                        const viewport = page.getViewport({ scale });
+
+                        const c = document.createElement('canvas');
+                        c.width = viewport.width;
+                        c.height = viewport.height;
+                        const ctx = c.getContext('2d');
+                        await page.render({ canvasContext: ctx, viewport }).promise;
+                        renderedCanvases.push(c);
+                    }
+                }
+                else if (item.type === 'text') {
+                    const c = document.createElement('canvas');
+                    c.width = targetWidth * 2;
+                    c.height = 400 * 2;
+                    const ctx = c.getContext('2d');
+                    ctx.scale(2, 2);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, targetWidth, 400);
+                    ctx.fillStyle = '#0f172a';
+                    ctx.font = '16px Inter, sans-serif';
+                    const lines = wrapTextLines(ctx, item.textContent, targetWidth - 60);
+                    lines.slice(0, 14).forEach((l, idx) => ctx.fillText(l, 30, 40 + idx * 24));
+                    renderedCanvases.push(c);
+                }
+            }
+
+            const masterWidth = targetWidth * 2;
+            const totalHeight = renderedCanvases.reduce((sum, c) => sum + c.height + (gapBetweenItems * 2), 0);
+
+            const masterCanvas = document.createElement('canvas');
+            masterCanvas.width = masterWidth;
+            masterCanvas.height = totalHeight;
+            const mCtx = masterCanvas.getContext('2d');
+
+            mCtx.fillStyle = '#f1f5f9';
+            mCtx.fillRect(0, 0, masterWidth, totalHeight);
+
+            let currentY = gapBetweenItems;
+            for (const c of renderedCanvases) {
+                const x = (masterWidth - c.width) / 2;
+                mCtx.drawImage(c, x, currentY);
+                currentY += c.height + (gapBetweenItems * 2);
+            }
+
+            return new Promise((resolve) => {
+                masterCanvas.toBlob((blob) => {
+                    triggerDownloadAndResult(blob, `${filename}.png`, 'png', renderedCanvases.length);
+                    resolve();
+                }, 'image/png');
+            });
+        }
+
+        // Trigger Browser Download & Show Result Card
+        function triggerDownloadAndResult(blob, fullFilename, type, pageCount) {
+            if (lastMergedUrl) URL.revokeObjectURL(lastMergedUrl);
+            lastMergedUrl = URL.createObjectURL(blob);
+            lastMergedType = type;
+
+            // Auto-download
+            const a = document.createElement('a');
+            a.href = lastMergedUrl;
+            a.download = fullFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Update Result Card UI
+            resultSummary.textContent = `${fullFilename} (${pageCount} halaman/bagian • ${formatBytes(blob.size)})`;
+            downloadAgainLink.href = lastMergedUrl;
+            downloadAgainLink.download = fullFilename;
+            resultCard.classList.remove('hidden');
+
+            showToast(`Berhasil! "${fullFilename}" telah diunduh.`, 'success');
+        }
+
+        // Preview Modal Logic (Mobile & Desktop Compatible)
+        previewResultBtn.addEventListener('click', () => {
+            if (!lastMergedUrl) return;
+            previewContent.innerHTML = '';
+
+            if (lastMergedType === 'pdf') {
+                const obj = document.createElement('object');
+                obj.data = lastMergedUrl;
+                obj.type = 'application/pdf';
+                obj.className = 'w-full h-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white';
+                obj.innerHTML = `
+                    <div class="p-6 text-center space-y-3">
+                        <p class="text-sm text-slate-600 dark:text-slate-300">Browser Anda tidak mendukung pratinjau PDF langsung di dalam halaman.</p>
+                        <a href="${lastMergedUrl}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-semibold">
+                            Buka PDF di Tab Baru
+                        </a>
+                    </div>
+                `;
+                previewContent.appendChild(obj);
+            } else {
+                const img = document.createElement('img');
+                img.src = lastMergedUrl;
+                img.className = 'max-w-full max-h-full object-contain rounded-xl shadow-lg';
+                previewContent.appendChild(img);
+            }
+
+            previewModal.classList.remove('hidden');
+        });
+
+        closePreviewBtn.addEventListener('click', () => {
+            previewModal.classList.add('hidden');
+        });
+
+        previewModal.addEventListener('click', (e) => {
+            if (e.target === previewModal) previewModal.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
